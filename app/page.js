@@ -27,7 +27,9 @@ import {
   LogOut,
   PenTool,
   Code2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export default function ChatPage() {
@@ -50,6 +52,8 @@ export default function ChatPage() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customEmail, setCustomEmail] = useState('');
+  const [customPassword, setCustomPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
 
 
@@ -313,13 +317,18 @@ export default function ChatPage() {
     showToast('Exported conversation');
   };
 
-  // 1-Click Credentials Sign In
-  const handleCredentialsSignIn = async (name, email) => {
+  // MongoDB User Sign In / Registration
+  const handleCredentialsSignIn = async (name, email, password) => {
     const finalName = (name || customName || '').trim();
     const finalEmail = (email || customEmail || '').trim();
+    const finalPassword = (password || customPassword || '').trim();
 
-    if (!finalName || !finalEmail) {
-      showToast('Please enter your name and email');
+    if (!finalEmail) {
+      showToast('Please enter your email address');
+      return;
+    }
+    if (!finalPassword) {
+      showToast('Please enter your password');
       return;
     }
 
@@ -329,13 +338,15 @@ export default function ChatPage() {
         redirect: false,
         name: finalName,
         email: finalEmail,
+        password: finalPassword,
       });
       if (res?.ok) {
         setAuthModalOpen(false);
-        showToast(`Signed in as ${finalName}!`);
+        setCustomPassword('');
+        showToast(`Signed in successfully!`);
         fetchConversations();
       } else {
-        showToast(res?.error || 'Sign in failed');
+        showToast(res?.error || 'Invalid email or password');
       }
     } catch (err) {
       showToast('Error during sign-in');
@@ -852,20 +863,20 @@ export default function ChatPage() {
             </div>
 
             <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>
-              Enter your name and email to sign in and save your chat history directly to MongoDB Atlas.
+              Sign in with your email and password to securely save your chat history directly to MongoDB Atlas.
             </p>
 
             {/* Direct MongoDB Profile Sign In */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                handleCredentialsSignIn(customName, customEmail);
+                handleCredentialsSignIn(customName, customEmail, customPassword);
               }}
               style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
             >
               <div>
                 <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>
-                  Your Name
+                  Your Name <span style={{ fontWeight: 400, color: '#94a3b8' }}>(for profile)</span>
                 </label>
                 <input
                   type="text"
@@ -882,7 +893,6 @@ export default function ChatPage() {
                     background: '#ffffff',
                   }}
                   placeholder="Enter your name"
-                  required
                 />
               </div>
 
@@ -909,6 +919,49 @@ export default function ChatPage() {
                 />
               </div>
 
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>
+                  Password
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={customPassword}
+                    onChange={(e) => setCustomPassword(e.target.value)}
+                    autoComplete="current-password"
+                    style={{
+                      width: '100%',
+                      padding: '10px 38px 10px 12px',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      fontSize: '0.88rem',
+                      color: '#1e293b',
+                      background: '#ffffff',
+                    }}
+                    placeholder="Enter your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: '#64748b',
+                      background: 'transparent',
+                      padding: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={authLoading}
@@ -929,7 +982,7 @@ export default function ChatPage() {
                   gap: '8px',
                 }}
               >
-                {authLoading ? 'Signing in...' : 'Sign In & Sync MongoDB'}
+                {authLoading ? 'Signing in...' : 'Sign In / Register with MongoDB'}
               </button>
             </form>
           </div>
