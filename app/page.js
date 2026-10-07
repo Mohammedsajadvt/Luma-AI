@@ -48,9 +48,10 @@ export default function ChatPage() {
   const [toastText, setToastText] = useState('');
   const [toastVisible, setToastVisible] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [customName, setCustomName] = useState('Alex Morgan');
-  const [customEmail, setCustomEmail] = useState('alex@luma.ai');
+  const [customName, setCustomName] = useState('');
+  const [customEmail, setCustomEmail] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
+
 
 
   const textareaRef = useRef(null);
@@ -314,16 +315,24 @@ export default function ChatPage() {
 
   // 1-Click Credentials Sign In
   const handleCredentialsSignIn = async (name, email) => {
+    const finalName = (name || customName || '').trim();
+    const finalEmail = (email || customEmail || '').trim();
+
+    if (!finalName || !finalEmail) {
+      showToast('Please enter your name and email');
+      return;
+    }
+
     setAuthLoading(true);
     try {
       const res = await signIn('credentials', {
         redirect: false,
-        name: name || customName,
-        email: email || customEmail,
+        name: finalName,
+        email: finalEmail,
       });
       if (res?.ok) {
         setAuthModalOpen(false);
-        showToast('Signed in successfully!');
+        showToast(`Signed in as ${finalName}!`);
         fetchConversations();
       } else {
         showToast(res?.error || 'Sign in failed');
@@ -335,8 +344,11 @@ export default function ChatPage() {
     }
   };
 
-  const userName = session?.user?.name || 'Alex Morgan';
-  const userInitials = userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'AM';
+
+  const userName = session?.user?.name || 'Guest';
+  const userInitials = session?.user?.name
+    ? userName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'G';
 
   const filteredConversations = conversations.filter(c =>
     c.title.toLowerCase().includes(searchFilter.toLowerCase())
@@ -840,48 +852,17 @@ export default function ChatPage() {
             </div>
 
             <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>
-              Connect your account to save your chat history directly to MongoDB Atlas.
+              Enter your name and email to sign in and save your chat history directly to MongoDB Atlas.
             </p>
 
-            {/* Google Sign In Button */}
-            <button
-              onClick={() => signIn('google', { callbackUrl: typeof window !== 'undefined' ? window.location.origin : '/' })}
-              style={{
-
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px',
-                padding: '11px',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                borderRadius: '12px',
-                fontWeight: 600,
-                fontSize: '0.9rem',
-                color: '#1e293b',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                marginBottom: '16px',
-                cursor: 'pointer',
+            {/* Direct MongoDB Profile Sign In */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleCredentialsSignIn(customName, customEmail);
               }}
+              style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
-                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
-                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
-                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
-              </svg>
-              <span>Continue with Google</span>
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', margin: '14px 0', gap: '10px' }}>
-              <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
-              <span style={{ fontSize: '0.75rem', color: '#94a3b8', textTransform: 'uppercase' }}>or quick sign in</span>
-              <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }} />
-            </div>
-
-            {/* 1-Click MongoDB Profile Sign In */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div>
                 <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: '4px', display: 'block' }}>
                   Your Name
@@ -890,14 +871,18 @@ export default function ChatPage() {
                   type="text"
                   value={customName}
                   onChange={(e) => setCustomName(e.target.value)}
+                  autoComplete="off"
                   style={{
                     width: '100%',
-                    padding: '8px 12px',
+                    padding: '10px 12px',
                     border: '1px solid #cbd5e1',
                     borderRadius: '8px',
                     fontSize: '0.88rem',
+                    color: '#1e293b',
+                    background: '#ffffff',
                   }}
-                  placeholder="e.g. Alex Morgan"
+                  placeholder="Enter your name"
+                  required
                 />
               </div>
 
@@ -909,36 +894,44 @@ export default function ChatPage() {
                   type="email"
                   value={customEmail}
                   onChange={(e) => setCustomEmail(e.target.value)}
+                  autoComplete="off"
                   style={{
                     width: '100%',
-                    padding: '8px 12px',
+                    padding: '10px 12px',
                     border: '1px solid #cbd5e1',
                     borderRadius: '8px',
                     fontSize: '0.88rem',
+                    color: '#1e293b',
+                    background: '#ffffff',
                   }}
-                  placeholder="e.g. alex@luma.ai"
+                  placeholder="name@example.com"
+                  required
                 />
               </div>
 
               <button
+                type="submit"
                 disabled={authLoading}
-                onClick={() => handleCredentialsSignIn(customName, customEmail)}
                 style={{
                   marginTop: '8px',
                   width: '100%',
-                  padding: '10px',
+                  padding: '11px',
                   background: '#0f172a',
                   color: '#ffffff',
                   borderRadius: '10px',
                   fontWeight: 600,
-                  fontSize: '0.88rem',
+                  fontSize: '0.9rem',
                   cursor: 'pointer',
                   opacity: authLoading ? 0.7 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
                 }}
               >
-                {authLoading ? 'Signing in...' : 'Sign in & Sync MongoDB'}
+                {authLoading ? 'Signing in...' : 'Sign In & Sync MongoDB'}
               </button>
-            </div>
+            </form>
           </div>
         </div>
       )}
