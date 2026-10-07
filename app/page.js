@@ -845,8 +845,9 @@ export default function ChatPage() {
 
             {/* Google Sign In Button */}
             <button
-              onClick={() => signIn('google')}
+              onClick={() => signIn('google', { callbackUrl: typeof window !== 'undefined' ? window.location.origin : '/' })}
               style={{
+
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
